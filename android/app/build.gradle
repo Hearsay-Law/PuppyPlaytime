@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+}
+
+// CI passes the run number so every build installs as an update over the last one.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+def keystorePath = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'com.hearsaylaw.puppyplaytime'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.hearsaylaw.puppyplaytime'
+        minSdk 26
+        targetSdk 35
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storeType 'pkcs12'
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias 'puppy'
+                keyPassword System.getenv('KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Without the CI keystore (e.g. a local build), fall back to the debug key.
+            signingConfig keystorePath ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    // The app UI lives in /web at the repo root and is bundled as-is.
+    sourceSets {
+        main {
+            assets.srcDirs += ['../../web']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

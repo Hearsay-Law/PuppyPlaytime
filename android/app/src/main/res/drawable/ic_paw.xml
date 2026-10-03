@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paw print centred in the 66dp safe zone of a 108dp adaptive icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- main pad -->
+    <path android:fillColor="#FFF6EA"
+        android:pathData="M40,64 a14,11.5 0 1,0 28,0 a14,11.5 0 1,0 -28,0 Z" />
+    <!-- toes -->
+    <path android:fillColor="#FFF6EA"
+        android:pathData="M30,49 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
+    <path android:fillColor="#FFF6EA"
+        android:pathData="M41.5,38 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
+    <path android:fillColor="#FFF6EA"
+        android:pathData="M54.5,38 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
+    <path android:fillColor="#FFF6EA"
+        android:pathData="M66,49 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
+</vector>

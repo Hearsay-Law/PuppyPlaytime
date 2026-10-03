@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#FFF6EA">
+  <title>Puppy Playtime</title>
+  <link rel="icon" href="paw.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-phase="home">
+
+  <!-- Home: preview the three rounds, tweak names and settings, start -->
+  <section id="home" class="screen">
+    <header class="hero">
+      <img class="logo" src="paw.svg" alt="">
+      <h1>Puppy Playtime</h1>
+      <p class="sub">3 rounds &middot; 3 sets each &middot; 30s, 45s, 60s</p>
+    </header>
+
+    <div id="rounds"></div>
+
+    <section class="card settings">
+      <div class="row">
+        <span>Get-ready time</span>
+        <div class="seg" id="readySeg">
+          <button data-v="3">3s</button><button data-v="5">5s</button><button data-v="10">10s</button>
+        </div>
+      </div>
+      <div class="row">
+        <span>Sounds</span>
+        <button id="soundBtn" class="toggle"></button>
+      </div>
+    </section>
+
+    <div class="start-wrap">
+      <button id="startBtn" class="big">Let's play! 🐾</button>
+      <p id="estimate" class="muted"></p>
+    </div>
+  </section>
+
+  <!-- Workout -->
+  <section id="play" class="screen hidden">
+    <div class="topbar">
+      <div class="rounds-ind"><span id="roundDots"></span><span id="roundLabel"></span></div>
+      <button id="endBtn" class="icon" aria-label="End workout">✕</button>
+    </div>
+    <div id="chip" class="chip"></div>
+    <div class="pie-wrap" id="pieWrap">
+      <div id="pie"></div>
+      <div class="center">
+        <div id="phase" class="phase"></div>
+        <div id="count" class="count"></div>
+        <div id="exName" class="ex"></div>
+      </div>
+    </div>
+    <div id="upnext" class="upnext"></div>
+    <div id="controls" class="controls"></div>
+  </section>
+
+  <div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
+  <div id="confetti"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
