@@ -4,13 +4,20 @@
 
   // ---------- Workout shape ----------
   // A workout is 3 rounds. Each round has its own trio of exercises
-  // (abs, arms/chest, legs/cardio) and runs 3 sets: 30s, 45s, then 60s each.
+  // (abs, arms/chest, legs/cardio) and runs 3 sets. Every exercise lasts
+  // 30s in set 1, 45s in set 2 and 60s in set 3.
   const SET_SECONDS = [30, 45, 60];
+  // Icons are drawn in a 24x24 box.
   const CATS = [
-    { key: 'abs', label: 'Abs', color: '#FF6B8B' },
-    { key: 'arms', label: 'Arms & chest', color: '#4D9DFF' },
-    { key: 'legs', label: 'Legs & cardio', color: '#2FC07A' },
+    { key: 'abs', label: 'Abs', color: '#E76F51',
+      icon: 'M12 1.5c1.3 3.6 5.5 5.9 5.5 11a5.5 5.5 0 0 1-11 0c0-2.3 1-4 2.3-5.2 0 2.2 1 3.4 2.3 3.6-.2-3.4-.6-6.2.9-9.4z' },
+    { key: 'arms', label: 'Arms & chest', color: '#E0A93B',
+      icon: 'M1.5 9.5h2v5h-2zM4.5 6.5h3.5v11H4.5zM16 6.5h3.5v11H16zM20.5 9.5h2v5h-2zM8 10.8h8v2.4H8z' },
+    { key: 'legs', label: 'Legs & cardio', color: '#2A9D8F',
+      icon: 'M13.5 1.5 4 13.5h6.5L9 22.5l10-12.5h-6.6z' },
   ];
+  const PAW = '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="15.5" rx="5" ry="4.2"/><ellipse cx="5.2" cy="10.2" rx="2.2" ry="2.7"/><ellipse cx="9.3" cy="6" rx="2.2" ry="2.8"/><ellipse cx="14.7" cy="6" rx="2.2" ry="2.8"/><ellipse cx="18.8" cy="10.2" rx="2.2" ry="2.7"/></svg>';
+  const badge = (e, cls) => `<span class="badge ${cls || ''}" style="background:${CATS[e].color}"><svg viewBox="0 0 24 24"><path d="${CATS[e].icon}"/></svg></span>`;
   const DEFAULT_ROUNDS = [
     ['Sit-ups', 'Push-ups', 'Squats'],
     ['Bicycle crunches', 'Tricep dips', 'Lunges'],
@@ -113,12 +120,12 @@
     $('#rounds').innerHTML = settings.rounds.map((names, r) => `
       <section class="card round">
         <div class="round-head">
+          <span class="num">${PAW}</span>
           <h2>Round ${r + 1}</h2>
           <button class="edit" data-round="${r}">✎ Edit</button>
         </div>
         <ul>${names.map((n, e) => `
-          <li><span class="dot" style="background:${CATS[e].color}"></span>
-            <span class="name">${esc(n)}</span><span class="tag">${CATS[e].label}</span></li>`).join('')}
+          <li>${badge(e)}<span class="name">${esc(n)}</span><span class="tag">${CATS[e].label}</span></li>`).join('')}
         </ul>
       </section>`).join('');
     document.querySelectorAll('#readySeg button').forEach((b) => b.classList.toggle('on', +b.dataset.v === settings.readySecs));
@@ -167,7 +174,7 @@
       <h2>Round ${r + 1} exercises</h2>
       ${settings.rounds[r].map((n, e) => `
         <label class="field">
-          <span><span class="dot" style="background:${CATS[e].color}"></span>${CATS[e].label}</span>
+          <span>${badge(e, 'sm')}${CATS[e].label}</span>
           <input type="text" value="${esc(n)}" data-e="${e}" maxlength="30" autocomplete="off">
         </label>`).join('')}
       <button class="linkbtn" id="resetRound">Reset to defaults</button>
@@ -330,7 +337,7 @@
 
   // ---------- Pie ----------
   // 9 slices per round, sized by duration, grouped 3+3+3 with wider gaps between sets.
-  const CX = 200, R_OUT = 168, R_IN = 104;
+  const CX = 200, R_OUT = 162, R_IN = 102;
   const ANG = (() => {
     const groupGap = 10, sliceGap = 4;
     const avail = 360 - 3 * groupGap - 6 * sliceGap;
@@ -356,17 +363,25 @@
     return `M${pt(a0, R_OUT)} A${R_OUT} ${R_OUT} 0 ${large} 1 ${pt(a1, R_OUT)} L${pt(a1, R_IN)} A${R_IN} ${R_IN} 0 ${large} 0 ${pt(a0, R_IN)} Z`;
   }
   function pieSVG(doneCount, active, type) {
+    const rMid = (R_OUT + R_IN) / 2;
     let out = '<svg viewBox="0 0 400 400" aria-hidden="true">';
+    out += `<circle class="track" cx="${CX}" cy="${CX}" r="${rMid}" stroke-width="${R_OUT - R_IN + 16}"/>`;
+    let icons = '';
     ANG.forEach(([a0, a1], k) => {
-      const c = CATS[k % 3].color;
+      const e = k % 3, c = CATS[e].color;
       const cls = k < doneCount ? 'done' : k === active ? (type === 'ready' ? 'next' : 'now') : 'todo';
       out += `<path class="slice ${cls}" d="${arc(a0, a1)}" fill="${c}" stroke="${c}"/>`;
       if (k === active && type === 'work') out += `<path id="prog" class="slice prog" d="" fill="${c}" stroke="${c}"/>`;
+      const [x, y] = pt((a0 + a1) / 2, rMid).split(' ').map(Number);
+      icons += `<path class="sicon ${cls === 'todo' ? 'todo' : ''}" transform="translate(${x - 11} ${y - 11}) scale(.92)" d="${CATS[e].icon}"/>`;
     });
+    out += icons;
+    // "30s / each" labels outside each set's group of three slices
     SET_SECONDS.forEach((sec, s) => {
       const mid = (ANG[s * 3][0] + ANG[s * 3 + 2][1]) / 2;
-      const [x, y] = pt(mid, 187).split(' ');
-      out += `<text class="lbl" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle">${sec}s</text>`;
+      const [x, y] = pt(mid, 188).split(' ').map(Number);
+      out += `<text class="lbl" x="${x}" y="${y - 6}" text-anchor="middle" dominant-baseline="middle">${sec}s</text>`;
+      out += `<text class="lbl2" x="${x}" y="${y + 9}" text-anchor="middle" dominant-baseline="middle">EACH</text>`;
     });
     return out + '</svg>';
   }
@@ -374,14 +389,14 @@
   // ---------- Render ----------
   function pills(r) {
     return `<div class="list">${settings.rounds[r].map((n, e) =>
-      `<span class="pill"><span class="dot" style="background:${CATS[e].color}"></span>${esc(n)}</span>`).join('')}</div>`;
+      `<span class="pill">${badge(e)}${esc(n)}</span>`).join('')}</div>`;
   }
 
   function render() {
     if (!playing) return;
     const st = cur();
-    const paused = pausedAt !== null;
     const timed = st.type === 'ready' || st.type === 'work';
+    const paused = timed && pausedAt !== null;
 
     // Which round the pie shows and how much of it is finished
     let pr, doneCount, active = -1, roundsDone;
@@ -396,11 +411,11 @@
       document.body.dataset.phase = st.type === 'work' ? CATS[st.e].key : st.type;
       $('#play').classList.toggle('paused', paused);
       $('#roundDots').innerHTML = [0, 1, 2].map((i) =>
-        `<span class="rdot ${i < roundsDone ? 'full' : ''} ${i === roundsDone ? 'cur' : ''}"></span>`).join('');
+        `<span class="rdot ${i < roundsDone ? 'full' : ''} ${i === roundsDone ? 'cur' : ''}">${PAW}</span>`).join('');
       $('#roundLabel').textContent = st.type === 'done' ? 'All 3 rounds!'
         : st.type === 'break' && st.kind === 'round' ? `Round ${st.r} done` : `Round ${pr + 1} of 3`;
-      $('#chip').textContent = timed ? `Set ${st.s + 1} of 3 · ${SET_SECONDS[st.s]} seconds`
-        : st.type === 'break' && st.kind === 'set' ? `Up next: set ${st.s + 1} · ${SET_SECONDS[st.s]} seconds` : '';
+      $('#chip').textContent = timed ? `Set ${st.s + 1} of 3 · ${SET_SECONDS[st.s]}s per exercise`
+        : st.type === 'break' && st.kind === 'set' ? `Next: set ${st.s + 1} · ${SET_SECONDS[st.s]}s per exercise` : '';
       $('#pie').innerHTML = pieSVG(doneCount, active, st.type);
       renderUpNext(st);
       renderControls(st, paused);
@@ -411,7 +426,11 @@
     count.classList.toggle('small', !timed);
     if (timed) {
       const rem = Math.max(0, st.dur - elapsed());
-      phase.textContent = paused ? 'Paused' : st.type === 'ready' ? 'Get ready' : CATS[st.e].label;
+      const label = paused ? 'Paused' : st.type === 'ready' ? 'Get ready' : CATS[st.e].label;
+      if (phase.dataset.label !== label + st.e) {
+        phase.dataset.label = label + st.e;
+        phase.innerHTML = `${badge(st.e)}<span>${label}</span>`;
+      }
       count.textContent = Math.ceil(rem);
       ex.textContent = nameOf(st);
       if (st.type === 'work') {
@@ -421,10 +440,12 @@
         if (prog) prog.setAttribute('d', arc(a0, a0 + (a1 - a0) * p));
       }
     } else if (st.type === 'break') {
+      phase.dataset.label = '';
       phase.textContent = st.kind === 'set' ? 'Break' : `Round ${st.r} done!`;
       count.textContent = mmss((Date.now() - stepStart) / 1000);
       ex.textContent = st.kind === 'set' ? `Set ${st.s} done 🎉` : 'Good dog! 🐶';
     } else {
+      phase.dataset.label = '';
       phase.textContent = 'All done!';
       count.textContent = '🏆';
       ex.textContent = mmss((finishedAt - startedAt) / 1000);
@@ -459,7 +480,7 @@
         <button class="skip" data-act="skip" aria-label="Skip">Skip ⏭</button>`;
     } else if (st.type === 'break') {
       el.innerHTML = st.kind === 'set'
-        ? `<button class="big" data-act="continue">Start set ${st.s + 1}<small>${SET_SECONDS[st.s]} seconds each</small></button>`
+        ? `<button class="big" data-act="continue">Start set ${st.s + 1}<small>${SET_SECONDS[st.s]} seconds per exercise</small></button>`
         : `<button class="big" data-act="continue">Start round ${st.r + 1}<small>${esc(settings.rounds[st.r].join(' · '))}</small></button>`;
     } else {
       el.innerHTML = '<button class="big" data-act="home">Back home 🏠</button>';
@@ -468,12 +489,18 @@
 
   function confetti() {
     const box = $('#confetti');
-    const colors = CATS.map((c) => c.color).concat('#FF8A3D', '#FFC83D');
+    const colors = CATS.map((c) => c.color).concat('#264653', '#F4A261');
     for (let i = 0; i < 70; i++) {
       const d = document.createElement('span');
-      d.className = 'cf';
+      const c = colors[i % colors.length];
       d.style.left = `${Math.random() * 100}%`;
-      d.style.background = colors[i % colors.length];
+      if (i % 4 === 0) { // every fourth piece is a little paw print
+        d.className = 'cf paw';
+        d.innerHTML = PAW.replace('<svg ', `<svg fill="${c}" `);
+      } else {
+        d.className = 'cf';
+        d.style.background = c;
+      }
       d.style.animationDuration = `${2 + Math.random() * 2.5}s`;
       d.style.animationDelay = `${Math.random() * 0.6}s`;
       box.appendChild(d);

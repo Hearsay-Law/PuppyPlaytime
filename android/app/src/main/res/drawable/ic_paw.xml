@@ -6,15 +6,15 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <!-- main pad -->
-    <path android:fillColor="#FFF6EA"
+    <path android:fillColor="#FBF6EE"
         android:pathData="M40,64 a14,11.5 0 1,0 28,0 a14,11.5 0 1,0 -28,0 Z" />
     <!-- toes -->
-    <path android:fillColor="#FFF6EA"
+    <path android:fillColor="#FBF6EE"
         android:pathData="M30,49 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
-    <path android:fillColor="#FFF6EA"
+    <path android:fillColor="#FBF6EE"
         android:pathData="M41.5,38 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
-    <path android:fillColor="#FFF6EA"
+    <path android:fillColor="#FBF6EE"
         android:pathData="M54.5,38 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
-    <path android:fillColor="#FFF6EA"
+    <path android:fillColor="#FBF6EE"
         android:pathData="M66,49 a6,7.5 0 1,0 12,0 a6,7.5 0 1,0 -12,0 Z" />
 </vector>

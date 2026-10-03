@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="cream">#FFF6EA</color>
-    <color name="orange">#FF8A3D</color>
+    <color name="cream">#FBF6EE</color>
+    <color name="orange">#E76F51</color>
 
     <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/cream</item>
