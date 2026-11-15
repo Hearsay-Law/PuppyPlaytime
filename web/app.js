@@ -48,55 +48,175 @@
   const mmss = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 
   // ---------- Sound ----------
-  let ac = null, master = null;
+  // Everything is synthesized with Web Audio: no files, no music. The palette
+  // is a small "studio" of three voices that share one soft room reverb:
+  //   marimba - warm wooden mallet, used for countdowns and small cues
+  //   chime   - glassy bell with inharmonic overtones, used for milestones
+  //   pad     - slow, quiet chord bloom underneath the bigger celebrations
+  let ac = null, master = null, verbIn = null;
+  function impulse(ctx, sec, decay) {
+    const len = Math.floor(ctx.sampleRate * sec);
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
   function audio() {
     if (!ac) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ac = new AC();
       const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.ratio.value = 4;
+      const soften = ac.createBiquadFilter();
+      soften.type = 'lowpass';
+      soften.frequency.value = 7500;
       master = ac.createGain();
-      master.gain.value = 0.9;
-      master.connect(comp).connect(ac.destination);
+      master.gain.value = 0.85;
+      master.connect(soften).connect(comp).connect(ac.destination);
+      // Gentle room so cues feel like they happen in a space, not a beeper.
+      const verb = ac.createConvolver();
+      verb.buffer = impulse(ac, 2.2, 3.2);
+      const wet = ac.createGain();
+      wet.gain.value = 0.28;
+      verbIn = ac.createGain();
+      verbIn.connect(verb).connect(wet).connect(soften);
     }
     if (ac.state === 'suspended') ac.resume();
     return ac;
   }
-  function tone(freq, start, dur, gain, type) {
+  // One enveloped oscillator. opts: type, attack, send (reverb amount), glide (start pitch ratio).
+  function partial(freq, start, dur, gain, opts) {
     const ctx = audio();
     if (!ctx) return;
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    const t = ctx.currentTime + start;
-    o.type = type || 'sine';
-    o.frequency.value = freq;
+    const o = opts || {};
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    const t = ctx.currentTime + 0.01 + start;
+    const atk = o.attack || 0.004;
+    osc.type = o.type || 'sine';
+    if (o.glide) {
+      osc.frequency.setValueAtTime(freq * o.glide, t);
+      osc.frequency.exponentialRampToValueAtTime(freq, t + 0.04);
+    } else osc.frequency.value = freq;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(gain, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(gain, t + atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + atk + dur);
+    osc.connect(g);
+    g.connect(master);
+    if (o.send) {
+      const s = ctx.createGain();
+      s.gain.value = o.send;
+      g.connect(s).connect(verbIn);
+    }
+    osc.start(t);
+    osc.stop(t + atk + dur + 0.05);
+  }
+  // A short filtered noise burst: the "knock" of a mallet, or a soft air swish.
+  function noise(start, dur, gain, freq, q, sweepTo) {
+    const ctx = audio();
+    if (!ctx) return;
+    const len = Math.ceil(ctx.sampleRate * (dur + 0.05));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    const t = ctx.currentTime + 0.01 + start;
+    src.buffer = buf;
+    f.type = 'bandpass';
+    f.Q.value = q || 1;
+    f.frequency.setValueAtTime(freq, t);
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
+    const atk = sweepTo ? dur * 0.6 : 0.002;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + atk);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(master);
-    o.start(t);
-    o.stop(t + dur + 0.05);
+    src.connect(f).connect(g).connect(master);
+    const s = ctx.createGain();
+    s.gain.value = 0.3;
+    g.connect(s).connect(verbIn);
+    src.start(t);
+    src.stop(t + dur + 0.05);
   }
-  // A soft bell: fundamental plus a couple of quiet overtones.
-  function bell(f, start, dur, gain) {
-    tone(f, start, dur, gain);
-    tone(f * 2, start, dur * 0.6, gain * 0.3);
-    tone(f * 3, start, dur * 0.3, gain * 0.1);
+  // Marimba: fundamental, the bar's characteristic ~4x overtone, and a mallet knock.
+  function marimba(f, start, gain, dur) {
+    const d = dur || 0.45;
+    partial(f, start, d, gain, { send: 0.25 });
+    partial(f * 3.93, start, d * 0.12, gain * 0.28, { send: 0.15 });
+    partial(f * 10.1, start, 0.02, gain * 0.06);
+    noise(start, 0.02, gain * 0.35, f * 4, 2);
   }
+  // Wood block: hollow, very short, clock-like.
+  function wood(f, start, gain) {
+    partial(f, start, 0.07, gain, { glide: 1.35, send: 0.12 });
+    partial(f * 2.6, start, 0.03, gain * 0.3);
+    noise(start, 0.015, gain * 0.4, 2400, 3);
+  }
+  // Chime: inharmonic bell partials, each pair slightly detuned so it shimmers.
+  const CHIME = [[1, 1, 1], [2.76, 0.36, 0.55], [5.4, 0.16, 0.3], [8.93, 0.07, 0.16]];
+  function chime(f, start, gain, dur) {
+    const d = dur || 1.4;
+    CHIME.forEach(([r, a, l]) => {
+      partial(f * r, start, d * l, gain * a * 0.6, { send: 0.55 });
+      partial(f * r * 1.0025, start, d * l, gain * a * 0.4, { send: 0.55 });
+    });
+  }
+  // Pad: a slow, quiet triangle-wave chord that blooms underneath a celebration.
+  function pad(freqs, start, dur, gain) {
+    freqs.forEach((f) => {
+      partial(f, start, dur, gain, { type: 'triangle', attack: dur * 0.35, send: 0.8 });
+      partial(f * 1.004, start, dur, gain * 0.6, { type: 'triangle', attack: dur * 0.35, send: 0.8 });
+    });
+  }
+  // Pitches (C major / pentatonic so everything agrees with everything else).
+  const N = { C3: 131, G3: 196, C4: 262, E4: 330, G4: 392, A4: 440, C5: 523, D5: 587, E5: 659, G5: 784, A5: 880, C6: 1047, D6: 1175, E6: 1319, G6: 1568 };
+  // 3-2-1 before an exercise climbs toward the "go" note, so you can feel it landing.
+  const COUNT = { 3: N.C5, 2: N.D5, 1: N.E5 };
   const SOUNDS = {
-    tick: () => bell(880, 0, 0.12, 0.15),
-    go: () => { bell(660, 0, 0.15, 0.25); bell(990, 0.12, 0.35, 0.3); },
-    done: () => { bell(784, 0, 0.35, 0.3); bell(988, 0.12, 0.35, 0.3); bell(1175, 0.24, 0.6, 0.3); },
+    // Get-ready countdown: rising marimba.
+    count: (c) => marimba(COUNT[c] || N.C5, 0, 0.8),
+    // Exercise starts: bright mallet on the resolving note, a lifted chime, and a soft swish.
+    go: () => {
+      noise(0, 0.22, 0.05, 600, 0.8, 4000);
+      marimba(N.G5, 0.02, 0.7, 0.6);
+      chime(N.G6 / 2, 0.06, 0.3, 1.1);
+    },
+    // Last seconds of an exercise: quiet wood-block "clock" (distinct from get-ready).
+    workTick: () => wood(N.A4 * 2, 0, 0.45),
+    // Halfway through a longer exercise: a single, barely-there chime.
+    halfway: () => chime(N.E6, 0, 0.2, 0.9),
+    // Exercise done: an easy two-note "exhale" down to rest.
+    done: () => {
+      marimba(N.G5, 0, 0.32, 0.5);
+      marimba(N.C5, 0.14, 0.34, 0.9);
+      chime(N.C6, 0.16, 0.08, 1.2);
+    },
+    // Set done: a chime arpeggio over a gentle chord.
     setDone: () => {
-      [523, 659, 784].forEach((f, i) => bell(f, i * 0.12, 0.4, 0.3));
-      bell(1047, 0.36, 0.9, 0.32);
+      pad([N.C4, N.G4, N.E5], 0, 2.2, 0.05);
+      [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => chime(f, i * 0.11, 0.22, 1.6));
     },
-    finale: () => {
-      [523, 659, 784, 1047].forEach((f, i) => bell(f, i * 0.12, 0.3, 0.28));
-      bell(784, 0.6, 0.25, 0.28);
-      bell(1047, 0.75, 1.1, 0.34);
+    // Round done: fuller chord bloom, a low bell, and a cascading chime run.
+    roundDone: () => {
+      chime(N.C3 * 2, 0, 0.2, 2.6);
+      pad([N.C3, N.G3, N.E4, N.C5], 0, 3, 0.05);
+      [N.C5, N.E5, N.G5, N.C6, N.E6].forEach((f, i) => chime(f, 0.12 + i * 0.1, 0.2, 1.8));
     },
+    // Workout complete: the round chord, then a little sparkle that rings out.
+    complete: () => {
+      SOUNDS.roundDone();
+      [N.G5, N.C6, N.E6, N.G6].forEach((f, i) => marimba(f, 0.75 + i * 0.07, 0.16, 0.4));
+      chime(N.C6, 1.1, 0.24, 2.8);
+      chime(N.G5, 1.1, 0.14, 2.8);
+    },
+    // Pause / resume: two tiny notes, down or up.
+    pause: () => { marimba(N.E5, 0, 0.18, 0.25); marimba(N.C5, 0.08, 0.18, 0.4); },
+    resume: () => { marimba(N.C5, 0, 0.18, 0.25); marimba(N.E5, 0.08, 0.18, 0.4); },
   };
-  function sfx(name) { if (settings.sound) try { SOUNDS[name](); } catch (e) { /* no audio */ } }
+  let quiet = false;
+  function sfx(name, arg) { if (settings.sound && !quiet) try { SOUNDS[name](arg); } catch (e) { /* no audio */ } }
   function buzz(ms) {
     try {
       if (window.Android && window.Android.vibrate) window.Android.vibrate(ms);
@@ -148,7 +268,7 @@
   $('#soundBtn').addEventListener('click', () => {
     settings.sound = !settings.sound;
     save(); renderHome();
-    if (settings.sound) sfx('done');
+    if (settings.sound) sfx('go');
   });
   $('#startBtn').addEventListener('click', startWorkout);
 
@@ -258,12 +378,19 @@
       const st = cur();
       if ((st.type !== 'ready' && st.type !== 'work') || pausedAt !== null) break;
       const rem = st.dur - elapsed();
+      const c = Math.ceil(rem);
       if (st.type === 'ready') {
-        const c = Math.ceil(rem);
-        if (c >= 1 && c <= 3 && c !== lastBeep) { lastBeep = c; sfx('tick'); }
+        if (c >= 1 && c <= 3 && c !== lastBeep) { lastBeep = c; sfx('count', c); }
+      } else {
+        // Work: a faint chime at the halfway mark of longer sets, then a quiet clock for the last 3s.
+        if (st.dur >= 45 && lastBeep === null && rem <= st.dur / 2 && rem > 3) { lastBeep = 'half'; sfx('halfway'); }
+        if (c >= 1 && c <= 3 && c !== lastBeep) { lastBeep = c; sfx('workTick'); }
       }
       if (rem > 0) break;
+      // If we're catching up after being in the background, don't stack a pile of stale cues.
+      quiet = rem < -1;
       advance(true);
+      quiet = false;
     }
     render();
   }
@@ -271,7 +398,8 @@
   function advance(natural) {
     const st = cur(), next = steps[idx + 1];
     if (st.type === 'work') {
-      if (next.type === 'done' || (next.type === 'break' && next.kind === 'round')) { sfx('finale'); buzz(800); }
+      if (next.type === 'done') { sfx('complete'); buzz(800); }
+      else if (next.type === 'break' && next.kind === 'round') { sfx('roundDone'); buzz(800); }
       else if (next.type === 'break') { sfx('setDone'); buzz(600); }
       else { sfx('done'); buzz(400); }
     } else if (st.type === 'ready') {
@@ -296,6 +424,7 @@
   }
   function continueFromBreak() {
     audio();
+    sfx('resume');
     idx++;
     stepStart = Date.now();
     pausedAt = null;
@@ -324,7 +453,7 @@
     const b = ev.target.closest('button');
     if (!b) return;
     const act = b.dataset.act;
-    if (act === 'pause') togglePause();
+    if (act === 'pause') { sfx(pausedAt === null ? 'pause' : 'resume'); togglePause(); }
     else if (act === 'skip') { advance(false); render(); }
     else if (act === 'continue') continueFromBreak();
     else if (act === 'home') stopWorkout();
