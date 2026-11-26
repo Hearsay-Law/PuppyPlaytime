@@ -341,14 +341,14 @@
           <button class="edit" data-round="${r}">✎ Edit</button>
         </div>
         <ul>${names.map((n, e) => `
-          <li>${badge(e)}<span class="name">${esc(n)}${wtIcon(findEx(e, n))}${findEx(e, n).sides ? '<span class="sides" title="Switch sides halfway">⇄</span>' : ''}</span><span class="tag">${CATS[e].label}</span></li>`).join('')}
+          <li>${badge(e)}<span class="name">${esc(n)}${wtIcon(findEx(e, n))}${findEx(e, n).sides ? '<span class="sides" title="Switch sides halfway">⇄</span>' : ''}</span></li>`).join('')}
         </ul>
       </section>`).join('');
     document.querySelectorAll('#readySeg button').forEach((b) => b.classList.toggle('on', +b.dataset.v === settings.readySecs));
     const sb = $('#soundBtn');
     sb.textContent = settings.sound ? 'On' : 'Off';
     sb.classList.toggle('on', settings.sound);
-    $('#estimate').textContent = `About ${totalMinutes()} minutes, plus your breaks`;
+    $('#estimate').textContent = `About ${totalMinutes()} min + breaks`;
   }
 
   $('#rounds').addEventListener('click', (ev) => {
@@ -398,8 +398,7 @@
     const draft = settings.rounds[r].slice();
     const options = (e) => LIBRARY[e].map((x) => {
       const other = settings.rounds.findIndex((names, rr) => rr !== r && names[e] === x.name);
-      const extra = (x.weight === 'required' ? ' · weights' : x.weight ? ' · weights optional' : '') + (x.sides ? ' · both sides' : '');
-      return `<option value="${esc(x.name)}" ${x.name === draft[e] ? 'selected' : ''} ${other >= 0 ? 'disabled' : ''}>${esc(x.name)}${extra}${other >= 0 ? ` (Round ${other + 1})` : ''}</option>`;
+      return `<option value="${esc(x.name)}" ${x.name === draft[e] ? 'selected' : ''} ${other >= 0 ? 'disabled' : ''}>${esc(x.name)}${other >= 0 ? ` (Round ${other + 1})` : ''}</option>`;
     }).join('');
     const tipFor = (e) => {
       const x = findEx(e, draft[e]);
@@ -592,8 +591,8 @@
     else if (act === 'continue') continueFromBreak();
     else if (act === 'home') stopWorkout();
   });
-  // Tapping the circle also pauses / resumes.
-  $('#pieWrap').addEventListener('click', () => {
+  // Tapping the big timer also pauses / resumes.
+  $('#focusMain').addEventListener('click', () => {
     const st = cur();
     if (st && (st.type === 'ready' || st.type === 'work')) togglePause();
   });
@@ -643,16 +642,25 @@
     SET_SECONDS.forEach((sec, s) => {
       const mid = (ANG[s * 3][0] + ANG[s * 3 + 2][1]) / 2;
       const [x, y] = pt(mid, 188).split(' ').map(Number);
-      out += `<text class="lbl" x="${x}" y="${y - 6}" text-anchor="middle" dominant-baseline="middle">${sec}s</text>`;
-      out += `<text class="lbl2" x="${x}" y="${y + 9}" text-anchor="middle" dominant-baseline="middle">EACH</text>`;
+      out += `<text class="lbl" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle">${sec}s</text>`;
     });
     return out + '</svg>';
   }
 
   // ---------- Render ----------
+  // Two views share the workout screen and crossfade:
+  //   focus    - get-ready and exercise: big countdown, ring, exercise name, cues
+  //   overview - breaks and the finish: the whole round as a pie, what's coming
+  // Rendering only reads the clock; transitions are pure CSS, so they never touch timing.
+  const RING_C = 2 * Math.PI * 92;
   function pills(r) {
     return `<div class="list">${settings.rounds[r].map((n, e) =>
       `<span class="pill">${badge(e)}${esc(n)}${wtIcon(findEx(e, n))}</span>`).join('')}</div>`;
+  }
+  function restartAnim(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
   }
 
   function render() {
@@ -661,101 +669,108 @@
     const timed = st.type === 'ready' || st.type === 'work';
     const paused = timed && pausedAt !== null;
 
-    // Which round the pie shows and how much of it is finished
-    let pr, doneCount, active = -1, roundsDone;
-    if (timed) { pr = st.r; doneCount = st.s * 3 + st.e; active = doneCount; roundsDone = st.r; }
-    else if (st.type === 'break' && st.kind === 'set') { pr = st.r; doneCount = st.s * 3; roundsDone = st.r; }
-    else if (st.type === 'break') { pr = st.r - 1; doneCount = 9; roundsDone = st.r; }
-    else { pr = 2; doneCount = 9; roundsDone = 3; }
-
     const key = `${idx}|${paused}`;
     if (key !== shownKey) {
       shownKey = key;
       document.body.dataset.phase = st.type === 'work' ? CATS[st.e].key : st.type;
       $('#play').classList.toggle('paused', paused);
+      $('#play').dataset.view = timed ? 'focus' : 'overview';
+      const roundsDone = st.type === 'done' ? 3 : st.r;
       $('#roundDots').innerHTML = [0, 1, 2].map((i) =>
         `<span class="rdot ${i < roundsDone ? 'full' : ''} ${i === roundsDone ? 'cur' : ''}">${PAW}</span>`).join('');
-      $('#roundLabel').textContent = st.type === 'done' ? 'All 3 rounds!'
-        : st.type === 'break' && st.kind === 'round' ? `Round ${st.r} done` : `Round ${pr + 1} of 3`;
-      $('#chip').textContent = timed ? `Set ${st.s + 1} of 3 · ${SET_SECONDS[st.s]}s per exercise`
-        : st.type === 'break' && st.kind === 'set' ? `Next: set ${st.s + 1} · ${SET_SECONDS[st.s]}s per exercise` : '';
-      $('#pie').innerHTML = pieSVG(doneCount, active, st.type);
-      renderUpNext(st);
+      $('#roundLabel').textContent = st.type === 'done' ? 'All done!'
+        : st.type === 'break' && st.kind === 'round' ? `Round ${st.r} done` : `Round ${st.r + 1}`;
+      if (timed) renderFocus(st, paused);
+      else renderOverview(st);
       renderControls(st, paused);
     }
 
     // Per-frame bits
-    const phase = $('#phase'), count = $('#count'), ex = $('#exName');
-    count.classList.toggle('small', !timed);
     if (timed) {
       const rem = Math.max(0, st.dur - elapsed());
-      const label = paused ? 'Paused' : st.type === 'ready' ? 'Get ready' : CATS[st.e].label;
-      if (phase.dataset.label !== label + st.e) {
-        phase.dataset.label = label + st.e;
-        phase.innerHTML = `${badge(st.e)}<span>${label}</span>`;
-      }
-      count.textContent = Math.ceil(rem);
+      const c = String(Math.ceil(rem));
+      if ($('#fCount').textContent !== c) $('#fCount').textContent = c;
+      // Ring empties as time runs out.
+      $('#ringProg').style.strokeDashoffset = (RING_C * (1 - rem / st.dur)).toFixed(1);
       const x = exOf(st);
-      if (ex.dataset.name !== x.name) { ex.dataset.name = x.name; ex.innerHTML = `${esc(x.name)}${wtIcon(x)}`; }
-      // Tip line: form cue, plus weight / side reminders.
-      let tip = esc(x.tip || ''), hot = false;
-      if (st.type === 'ready' && x.weight === 'required') tip = `<b>Grab your weights</b> · ${tip}`;
-      if (x.sides) {
+      let cue = '', hot = false;
+      if (st.type === 'ready') {
+        cue = x.weight === 'required' ? 'Grab your weights' : x.sides ? 'Both sides, switch halfway' : '';
+      } else if (x.sides) {
         const into = st.dur - rem;
-        if (st.type === 'ready') tip = `<b>Both sides</b>, switch halfway · ${tip}`;
-        else if (into < st.dur / 2) tip = `<b>First side</b> · ${tip}`;
-        else if (into < st.dur / 2 + 3) { tip = '⇄ Switch sides!'; hot = true; }
-        else tip = `<b>Second side</b> · ${tip}`;
+        if (into < st.dur / 2) cue = 'Side 1';
+        else if (into < st.dur / 2 + 3) { cue = '⇄ Switch sides!'; hot = true; }
+        else cue = 'Side 2';
       }
-      setTip(tip, hot);
-      if (st.type === 'work') {
-        const p = Math.min(1, (st.dur - rem) / st.dur);
-        const [a0, a1] = ANG[active];
-        const prog = $('#prog');
-        if (prog) prog.setAttribute('d', arc(a0, a0 + (a1 - a0) * p));
-      }
+      setCue(cue, hot);
     } else if (st.type === 'break') {
-      setTip('', false);
-      ex.dataset.name = '';
-      phase.dataset.label = '';
-      phase.textContent = st.kind === 'set' ? 'Break' : `Round ${st.r} done!`;
-      count.textContent = mmss((Date.now() - stepStart) / 1000);
-      ex.textContent = st.kind === 'set' ? `Set ${st.s} done 🎉` : 'Good dog! 🐶';
-    } else {
-      setTip('', false);
-      ex.dataset.name = '';
-      phase.dataset.label = '';
-      phase.textContent = 'All done!';
-      count.textContent = '🏆';
-      ex.textContent = mmss((finishedAt - startedAt) / 1000);
+      $('#count').textContent = mmss((Date.now() - stepStart) / 1000);
     }
   }
 
-  function setTip(html, hot) {
-    const el = $('#tip');
-    if (el.dataset.html === html) return;
-    el.dataset.html = html;
-    el.innerHTML = html;
+  function setCue(text, hot) {
+    const el = $('#cue');
+    if (el.dataset.text === text) return;
+    el.dataset.text = text;
+    el.textContent = text;
     el.classList.toggle('hot', hot);
   }
 
-  function renderUpNext(st) {
-    const el = $('#upnext');
-    if (st.type === 'ready' || st.type === 'work') {
-      let next = null;
-      // Skip past this exercise's own work step when we're still getting ready for it.
-      for (let j = idx + (st.type === 'ready' ? 2 : 1); j < steps.length; j++) {
-        if (steps[j].type !== 'ready') { next = steps[j]; break; }
-      }
-      if (next.type === 'work') el.innerHTML = `<span class="label">Up next:</span> <b>${esc(nameOf(next))}</b>${wtIcon(exOf(next))}`;
-      else if (next.type === 'done') el.innerHTML = '<b>Last one, finish strong! 💪</b>';
-      else el.innerHTML = `<span class="label">Up next:</span> <b>${next.kind === 'round' ? 'a longer break' : 'a short break'}</b>`;
-    } else if (st.type === 'break' && st.kind === 'set') {
-      el.innerHTML = `<span class="label">Same three, ${SET_SECONDS[st.s]} seconds each</span>${pills(st.r)}`;
-    } else if (st.type === 'break') {
-      el.innerHTML = `<span class="label">Round ${st.r + 1}: new exercises</span>${pills(st.r)}`;
+  // Focus view: one exercise, as big as the screen allows.
+  function renderFocus(st, paused) {
+    const x = exOf(st), c = CATS[st.e];
+    const f = $('#focus');
+    f.style.setProperty('--cat', c.color);
+    f.classList.toggle('is-work', st.type === 'work');
+    $('#fPhase').innerHTML = paused ? '<span>Paused</span>'
+      : st.type === 'ready' ? '<span>Get ready</span>' : `${badge(st.e, 'sm')}<span>${c.label}</span>`;
+    // New exercise: slide it in. Ready -> work is the same exercise, so it stays put.
+    const nameEl = $('#fName');
+    const id = `${st.r}|${st.s}|${st.e}`;
+    if (nameEl.dataset.id !== id) {
+      nameEl.dataset.id = id;
+      nameEl.innerHTML = `${esc(x.name)}${wtIcon(x)}`;
+      $('#fTip').textContent = x.tip || '';
+      restartAnim($('#focusMain'), 'enter');
+    }
+    // A notch at the halfway mark for one-sided exercises.
+    $('#ringNotch').style.display = x.sides ? '' : 'none';
+    // Where we are in this round: 9 little bars, coloured by category.
+    const pos = st.s * 3 + st.e;
+    $('#strip').innerHTML = `<div class="bars">${Array.from({ length: 9 }, (_, k) =>
+      `<i class="${k < pos ? 'done' : k === pos ? 'now' : ''}" style="--c:${CATS[k % 3].color}"></i>`).join('')}</div>`
+      + `<span>Set ${st.s + 1} of 3 · ${SET_SECONDS[st.s]}s</span>`;
+    // What comes after this one.
+    let next = null;
+    for (let j = idx + (st.type === 'ready' ? 2 : 1); j < steps.length; j++) {
+      if (steps[j].type !== 'ready') { next = steps[j]; break; }
+    }
+    $('#fNext').innerHTML = next.type === 'work'
+      ? `<span class="label">Next</span>${badge(next.e, 'sm')}<b>${esc(nameOf(next))}</b>${wtIcon(exOf(next))}`
+      : next.type === 'done' ? '<b>Last one, finish strong! 💪</b>'
+      : `<span class="label">Next</span><b>${next.kind === 'round' ? 'Round break' : 'Break'}</b>`;
+  }
+
+  // Overview: the whole round at a glance, for breaks and the finish.
+  function renderOverview(st) {
+    let doneCount = 9;
+    if (st.type === 'break' && st.kind === 'set') doneCount = st.s * 3;
+    $('#chip').textContent = st.type === 'break' && st.kind === 'set' ? `Next: set ${st.s + 1} · ${SET_SECONDS[st.s]}s each`
+      : st.type === 'break' ? `Next: round ${st.r + 1}` : '';
+    $('#pie').innerHTML = pieSVG(doneCount, -1, st.type);
+    const phase = $('#phase'), count = $('#count'), ex = $('#exName');
+    if (st.type === 'break') {
+      phase.textContent = st.kind === 'set' ? 'Break' : `Round ${st.r} done!`;
+      count.classList.add('small');
+      count.textContent = mmss((Date.now() - stepStart) / 1000);
+      ex.textContent = st.kind === 'set' ? `Set ${st.s} done 🎉` : 'Good dog! 🐶';
+      $('#upnext').innerHTML = `<span class="label">${st.kind === 'set' ? 'Same three' : 'New exercises'}</span>${pills(st.r)}`;
     } else {
-      el.innerHTML = '<b>Sophie is so proud of you! 🐾</b>';
+      phase.textContent = 'All done!';
+      count.classList.remove('small');
+      count.textContent = '🏆';
+      ex.textContent = mmss((finishedAt - startedAt) / 1000);
+      $('#upnext').innerHTML = '<b>Sophie is so proud of you! 🐾</b>';
     }
   }
 
@@ -767,8 +782,8 @@
         <button class="skip" data-act="skip" aria-label="Skip">Skip ⏭</button>`;
     } else if (st.type === 'break') {
       el.innerHTML = st.kind === 'set'
-        ? `<button class="big" data-act="continue">Start set ${st.s + 1}<small>${SET_SECONDS[st.s]} seconds per exercise</small></button>`
-        : `<button class="big" data-act="continue">Start round ${st.r + 1}<small>${esc(settings.rounds[st.r].join(' · '))}</small></button>`;
+        ? `<button class="big" data-act="continue">Start set ${st.s + 1}</button>`
+        : `<button class="big" data-act="continue">Start round ${st.r + 1}</button>`;
     } else {
       el.innerHTML = '<button class="big" data-act="home">Back home 🏠</button>';
     }

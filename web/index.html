@@ -16,7 +16,7 @@
       <h1>Puppy Playtime
         <svg class="squiggle" viewBox="0 0 120 10" aria-hidden="true"><path d="M3 6 Q 13 1 23 6 T 43 6 T 63 6 T 83 6 T 103 6 T 117 5" fill="none" stroke="#E9B949" stroke-width="3.5" stroke-linecap="round"/></svg>
       </h1>
-      <p class="sub">3 sets per round: 30s, 45s, then 60s per exercise</p>
+      <p class="sub">3 rounds · 3 sets · 30s, 45s, 60s</p>
     </header>
 
     <button id="shuffleBtn" class="shuffle">🎲 Shuffle workout</button>
@@ -47,17 +47,44 @@
       <div class="rounds-ind"><span id="roundDots"></span><span id="roundLabel"></span></div>
       <button id="endBtn" class="icon" aria-label="End workout">✕</button>
     </div>
-    <div id="chip" class="chip"></div>
-    <div class="pie-wrap" id="pieWrap">
-      <div id="pie"></div>
-      <div class="center">
-        <div id="phase" class="phase"></div>
-        <div id="count" class="count"></div>
-        <div id="exName" class="ex"></div>
+    <div class="views">
+      <!-- Focus: get-ready and exercise -->
+      <div id="focus" class="view focus">
+        <div id="strip" class="strip"></div>
+        <div id="focusMain" class="focus-main">
+          <div id="fPhase" class="fphase"></div>
+          <div class="ring-box">
+            <div class="ring-wrap">
+              <svg viewBox="0 0 200 200" aria-hidden="true">
+                <circle class="ring-track" cx="100" cy="100" r="92"/>
+                <circle id="ringProg" class="ring-prog" cx="100" cy="100" r="92" stroke-dasharray="578.05" transform="rotate(-90 100 100)"/>
+                <line id="ringNotch" class="ring-notch" x1="100" y1="180" x2="100" y2="200"/>
+              </svg>
+              <div id="fCount" class="fcount"></div>
+            </div>
+          </div>
+          <div id="fName" class="fname"></div>
+          <div id="cue" class="cue"></div>
+          <div id="fTip" class="ftip"></div>
+        </div>
+        <div id="fNext" class="fnext"></div>
+      </div>
+      <!-- Overview: breaks and the finish -->
+      <div id="overview" class="view overview">
+        <div id="chip" class="chip"></div>
+        <div class="pie-box">
+          <div class="pie-wrap" id="pieWrap">
+            <div id="pie"></div>
+            <div class="center">
+              <div id="phase" class="phase"></div>
+              <div id="count" class="count"></div>
+              <div id="exName" class="ex"></div>
+            </div>
+          </div>
+        </div>
+        <div id="upnext" class="upnext"></div>
       </div>
     </div>
-    <div id="tip" class="tip"></div>
-    <div id="upnext" class="upnext"></div>
     <div id="controls" class="controls"></div>
   </section>
 

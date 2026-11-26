@@ -12,8 +12,14 @@ A big-button workout timer for Android, named after Sophie, who thinks we're pla
 | **Get ready** | A short countdown (3, 5 or 10s) before each exercise so you can get into position. |
 | **Break** | Between sets (short) and rounds (longer). The timer waits until you tap **Start**. |
 
-The circle shows the current round as 9 slices: coral = abs, gold = arms/chest, teal = legs/cardio.
-Slices are sized by duration and grouped 3 + 3 + 3 by set. The dots at the top show which round you're on.
+The workout screen changes with what you're doing:
+
+- **Get ready / exercise:** a big countdown in a ring that empties as time runs out, the exercise name, and cues
+  ("Grab your weights", "Switch sides!") with the form tip. A strip of 9 bars at the top shows your place in the round.
+- **Breaks:** the whole round as a circle of 9 slices (coral = abs, gold = arms/chest, teal = legs/cardio), sized
+  by duration and grouped 3 + 3 + 3 by set, plus the exercises coming up.
+
+The paw dots at the top show which round you're on.
 
 Tap **🎲 Shuffle workout** to pick a random workout: 9 different exercises, never repeated, favoring ones you
 didn't just do. Tap **Edit** on a round to change any exercise from a pulldown. Exercises already used in another
