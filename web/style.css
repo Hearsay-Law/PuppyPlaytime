@@ -100,6 +100,22 @@ h1 .squiggle { display: block; width: 120px; height: 10px; margin: 4px auto 0; }
 .round li { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 18px; }
 .name { flex: 1; font-weight: 600; }
 .tag { font-size: 13px; color: var(--muted); }
+.shuffle {
+  align-self: center; margin-top: 12px; border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: 999px; padding: 10px 22px; font-size: 17px; font-weight: 700; box-shadow: 0 4px 0 var(--line);
+}
+.shuffle:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+#rounds.shuffled .round { animation: pop .35s ease-out backwards; }
+#rounds.shuffled .round:nth-child(2) { animation-delay: .06s; }
+#rounds.shuffled .round:nth-child(3) { animation-delay: .12s; }
+@keyframes pop { from { transform: scale(.96); opacity: .4; } }
+
+/* Weight + sides markers next to exercise names */
+.wtag { display: inline-flex; vertical-align: -3px; margin-left: 7px; }
+.wtag .wt { width: 20px; height: 20px; fill: var(--ink); }
+.wtag.optional .wt { opacity: .35; }
+.sides { margin-left: 6px; font-size: 15px; color: var(--muted); }
+.ex .wtag .wt { width: 18px; height: 18px; }
 
 .settings .row {
   display: flex; justify-content: space-between; align-items: center;
@@ -197,6 +213,13 @@ h1 .squiggle { display: block; width: 120px; height: 10px; margin: 4px auto 0; }
 .lbl { font-size: 17px; font-weight: 700; fill: var(--ink); }
 .lbl2 { font-size: 11px; font-weight: 600; fill: var(--muted); letter-spacing: .5px; }
 
+.tip {
+  text-align: center; font-size: 17px; color: var(--muted); margin-top: 12px; min-height: 26px;
+  transition: transform .2s;
+}
+.tip b { color: var(--ink); }
+.tip.hot { color: var(--accent-d); font-weight: 700; font-size: 24px; animation: pulse-t .5s ease-in-out infinite alternate; }
+@keyframes pulse-t { to { transform: scale(1.08); } }
 .upnext { text-align: center; font-size: 19px; margin: 14px 0; min-height: 56px; }
 .upnext .label { color: var(--muted); font-weight: 500; }
 .upnext b { font-weight: 700; }
@@ -236,6 +259,18 @@ h1 .squiggle { display: block; width: 120px; height: 10px; margin: 4px auto 0; }
   -webkit-user-select: text; user-select: text;
 }
 .field input:focus { outline: none; border-color: var(--accent); }
+.pick { display: flex; gap: 8px; }
+.pick select {
+  flex: 1; min-width: 0; font-size: 18px; padding: 12px 14px; border-radius: 14px;
+  border: 2px solid var(--line); font-family: inherit; font-weight: 600; color: var(--ink); background: #fff;
+}
+.pick select:focus { outline: none; border-color: var(--accent); }
+.dice {
+  flex: none; width: 52px; border: 2px solid var(--line); border-radius: 14px; background: #fff; font-size: 22px;
+}
+.hint { display: flex; align-items: center; min-height: 22px; margin-top: 5px; font-size: 14px; color: var(--muted); }
+.hint .wtag { margin: 0 6px 0 0; }
+.hint .wtag .wt { width: 16px; height: 16px; }
 .btns { display: flex; gap: 10px; margin-top: 16px; }
 .btns .big { font-size: 21px; padding: 15px; }
 .linkbtn { border: 0; background: none; color: var(--muted); font-size: 15px; text-decoration: underline; padding: 8px 0; }

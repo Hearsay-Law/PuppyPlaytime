@@ -23,6 +23,81 @@
     ['Bicycle crunches', 'Tricep dips', 'Lunges'],
     ['Plank', 'Diamond push-ups', 'Jumping jacks'],
   ];
+  // ---------- Exercise library ----------
+  // sides:  split the interval in half with a "switch sides" cue.
+  // weight: 'optional' or 'required' shows a dumbbell; omitted means mat only.
+  const LIBRARY = [
+    [ // Abs
+      { name: 'Sit-ups', weight: 'optional', tip: 'Hold the weight at your chest' },
+      { name: 'Crunches', weight: 'optional', tip: 'Lift with your abs, not your neck' },
+      { name: 'Bicycle crunches', tip: 'Slow and controlled, elbow to opposite knee' },
+      { name: 'Reverse crunches', tip: 'Curl your hips off the mat' },
+      { name: 'Leg raises', weight: 'optional', tip: 'Keep your lower back pressed down' },
+      { name: 'Flutter kicks', tip: 'Small, fast kicks; low back down' },
+      { name: 'Dead bugs', weight: 'optional', tip: 'Opposite arm and leg, move slowly' },
+      { name: 'Hollow hold', tip: 'Arms overhead, shoulders off the mat' },
+      { name: 'V-ups', tip: 'Reach for your toes' },
+      { name: 'Plank', tip: 'Straight line from head to heels' },
+      { name: 'Side plank', sides: true, tip: 'Hips high' },
+      { name: 'Plank hip dips', tip: 'Rock your hips side to side' },
+      { name: 'Mountain climbers', tip: 'Drive your knees to your chest' },
+      { name: 'Russian twists', weight: 'required', tip: 'Lean back, rotate side to side' },
+    ],
+    [ // Arms & chest
+      { name: 'Push-ups', tip: 'Straight body, chest to the floor' },
+      { name: 'Knee push-ups', tip: 'Straight line from knees to head' },
+      { name: 'Wide push-ups', tip: 'Hands wider than your shoulders' },
+      { name: 'Diamond push-ups', tip: 'Thumbs and index fingers touching' },
+      { name: 'Pike push-ups', tip: 'Hips high, lower your head toward the mat' },
+      { name: 'Tricep dips', tip: 'Use a couch or chair edge if you have one' },
+      { name: 'Plank shoulder taps', tip: 'Keep your hips still' },
+      { name: 'Plank up-downs', tip: 'Elbows to hands, one arm at a time' },
+      { name: 'Inchworms', tip: 'Walk your hands out to a plank and back' },
+      { name: 'Bicep curls', weight: 'required', tip: 'Elbows tucked at your sides' },
+      { name: 'Overhead tricep extensions', weight: 'required', tip: 'Elbows point at the ceiling' },
+      { name: 'Floor chest press', weight: 'required', tip: 'Lie on your back, press straight up' },
+      { name: 'Bent-over rows', weight: 'required', tip: 'Flat back, pull both weights to your hips' },
+      { name: 'Lateral raises', weight: 'required', tip: 'Lift to shoulder height, slow on the way down' },
+    ],
+    [ // Legs & cardio
+      { name: 'Squats', weight: 'optional', tip: 'Sit back, chest up' },
+      { name: 'Lunges', weight: 'optional', tip: 'Alternate legs, back knee toward the floor' },
+      { name: 'Jumping jacks', tip: 'Land softly' },
+      { name: 'High knees', tip: 'Knees to hip height, stay on your toes' },
+      { name: 'Butt kicks', tip: 'Heels to glutes, quick feet' },
+      { name: 'Burpees', tip: 'Chest to the floor, jump at the top' },
+      { name: 'Jump squats', tip: 'Squat down, explode up, land soft' },
+      { name: 'Skaters', tip: 'Leap side to side, land on one foot' },
+      { name: 'Glute bridges', weight: 'optional', tip: 'Squeeze at the top; weight on your hips' },
+      { name: 'Single-leg glute bridges', sides: true, tip: 'Keep your hips level' },
+      { name: 'Side lunges', weight: 'optional', tip: 'Alternate sides, keep the other leg straight' },
+      { name: 'Romanian deadlifts', weight: 'required', tip: 'Hinge at the hips, flat back, weights close' },
+      { name: 'Calf raises', weight: 'optional', tip: 'Rise slowly, pause at the top' },
+      { name: 'Fire hydrants', sides: true, tip: 'On all fours, lift your knee out to the side' },
+      { name: 'Around the world', tip: 'Squat, step, squat. Lap the room!' },
+    ],
+  ];
+  const findEx = (e, name) => LIBRARY[e].find((x) => x.name === name);
+  const DUMBBELL = '<svg class="wt" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 9.5h2v5h-2zM4.5 6.5h3.5v11H4.5zM16 6.5h3.5v11H16zM20.5 9.5h2v5h-2zM8 10.8h8v2.4H8z"/></svg>';
+  // Little dumbbell after a name. Optional weights are drawn faded.
+  const wtIcon = (ex) => ex && ex.weight ? `<span class="wtag ${ex.weight}" title="${ex.weight === 'required' ? 'Weights' : 'Weights optional'}">${DUMBBELL}</span>` : '';
+  const shuffled = (a) => {
+    const b = a.slice();
+    for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; }
+    return b;
+  };
+  // A fresh random workout: 3 different exercises per category, so nothing repeats.
+  // Prefers exercises that aren't in the current workout, so each shuffle feels new.
+  function randomRounds(current) {
+    const out = [[], [], []];
+    for (let e = 0; e < 3; e++) {
+      const used = new Set(current ? current.map((r) => r[e]) : []);
+      const all = shuffled(LIBRARY[e].map((x) => x.name));
+      const pick = all.filter((n) => !used.has(n)).concat(all.filter((n) => used.has(n))).slice(0, 3);
+      pick.forEach((n, r) => { out[r][e] = n; });
+    }
+    return out;
+  }
   // Add ?fast to the URL to run 10x speed when testing.
   const SPEED = /[?&]fast/.test(location.search) ? 10 : 1;
   const STORE = 'puppy-playtime-v1';
@@ -31,13 +106,27 @@
   function loadSettings() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { /* first run */ }
+    // Keep saved exercises that are in the library and not already used; refill the rest.
+    const rounds = [[], [], []];
+    for (let e = 0; e < 3; e++) {
+      const used = new Set();
+      for (let r = 0; r < 3; r++) {
+        const saved = s.rounds && s.rounds[r] && s.rounds[r][e];
+        const n = findEx(e, saved) && !used.has(saved) ? saved : null;
+        rounds[r][e] = n;
+        if (n) used.add(n);
+      }
+      for (let r = 0; r < 3; r++) {
+        if (rounds[r][e]) continue;
+        const d = DEFAULT_ROUNDS[r][e];
+        rounds[r][e] = !used.has(d) ? d : LIBRARY[e].map((x) => x.name).find((n) => !used.has(n));
+        used.add(rounds[r][e]);
+      }
+    }
     return {
       readySecs: [3, 5, 10].includes(s.readySecs) ? s.readySecs : 5,
       sound: s.sound !== false,
-      rounds: DEFAULT_ROUNDS.map((names, r) => names.map((n, e) => {
-        const saved = s.rounds && s.rounds[r] && s.rounds[r][e];
-        return typeof saved === 'string' && saved.trim() ? saved.trim() : n;
-      })),
+      rounds,
     };
   }
   const settings = loadSettings();
@@ -187,6 +276,13 @@
     workTick: () => wood(N.A4 * 2, 0, 0.45),
     // Halfway through a longer exercise: a single, barely-there chime.
     halfway: () => chime(N.E6, 0, 0.2, 0.9),
+    // Switch sides: a clear back-and-forth "ding-dong-ding" so you notice mid-exercise.
+    switchSides: () => {
+      marimba(N.E5, 0, 0.6, 0.3);
+      marimba(N.C5, 0.13, 0.6, 0.3);
+      marimba(N.E5, 0.26, 0.6, 0.5);
+      chime(N.E6, 0.26, 0.15, 1);
+    },
     // Exercise done: an easy two-note "exhale" down to rest.
     done: () => {
       marimba(N.G5, 0, 0.32, 0.5);
@@ -245,7 +341,7 @@
           <button class="edit" data-round="${r}">✎ Edit</button>
         </div>
         <ul>${names.map((n, e) => `
-          <li>${badge(e)}<span class="name">${esc(n)}</span><span class="tag">${CATS[e].label}</span></li>`).join('')}
+          <li>${badge(e)}<span class="name">${esc(n)}${wtIcon(findEx(e, n))}${findEx(e, n).sides ? '<span class="sides" title="Switch sides halfway">⇄</span>' : ''}</span><span class="tag">${CATS[e].label}</span></li>`).join('')}
         </ul>
       </section>`).join('');
     document.querySelectorAll('#readySeg button').forEach((b) => b.classList.toggle('on', +b.dataset.v === settings.readySecs));
@@ -271,6 +367,12 @@
     if (settings.sound) sfx('go');
   });
   $('#startBtn').addEventListener('click', startWorkout);
+  $('#shuffleBtn').addEventListener('click', () => {
+    settings.rounds = randomRounds(settings.rounds);
+    save(); renderHome();
+    const box = $('#rounds');
+    box.classList.remove('shuffled'); void box.offsetWidth; box.classList.add('shuffled');
+  });
 
   // ---------- Modal sheet ----------
   let modalOnClose = null;
@@ -282,6 +384,7 @@
   function closeModal() {
     $('#modal').classList.add('hidden');
     $('#sheet').innerHTML = '';
+    $('#sheet').onchange = $('#sheet').onclick = null;
     const cb = modalOnClose;
     modalOnClose = null;
     if (cb) cb();
@@ -289,28 +392,54 @@
   const modalOpen = () => !$('#modal').classList.contains('hidden');
   $('#modal').addEventListener('click', (ev) => { if (ev.target.id === 'modal') closeModal(); });
 
+  // One pulldown per category. Exercises already used in another round are
+  // disabled (labelled with that round) so the workout never repeats one.
   function openEdit(r) {
+    const draft = settings.rounds[r].slice();
+    const options = (e) => LIBRARY[e].map((x) => {
+      const other = settings.rounds.findIndex((names, rr) => rr !== r && names[e] === x.name);
+      const extra = (x.weight === 'required' ? ' · weights' : x.weight ? ' · weights optional' : '') + (x.sides ? ' · both sides' : '');
+      return `<option value="${esc(x.name)}" ${x.name === draft[e] ? 'selected' : ''} ${other >= 0 ? 'disabled' : ''}>${esc(x.name)}${extra}${other >= 0 ? ` (Round ${other + 1})` : ''}</option>`;
+    }).join('');
+    const tipFor = (e) => {
+      const x = findEx(e, draft[e]);
+      return `${wtIcon(x)}${esc(x.tip || '')}`;
+    };
     openModal(`
       <h2>Round ${r + 1} exercises</h2>
-      ${settings.rounds[r].map((n, e) => `
+      ${draft.map((n, e) => `
         <label class="field">
           <span>${badge(e, 'sm')}${CATS[e].label}</span>
-          <input type="text" value="${esc(n)}" data-e="${e}" maxlength="30" autocomplete="off">
+          <div class="pick">
+            <select data-e="${e}">${options(e)}</select>
+            <button type="button" class="dice" data-e="${e}" aria-label="Pick a random ${CATS[e].label} exercise">🎲</button>
+          </div>
+          <small class="hint" data-e="${e}">${tipFor(e)}</small>
         </label>`).join('')}
-      <button class="linkbtn" id="resetRound">Reset to defaults</button>
       <div class="btns">
         <button class="big alt" id="cancelEdit">Cancel</button>
         <button class="big" id="saveEdit">Save</button>
       </div>`);
-    $('#cancelEdit').onclick = closeModal;
-    $('#resetRound').onclick = () => {
-      document.querySelectorAll('#sheet input').forEach((inp) => { inp.value = DEFAULT_ROUNDS[r][+inp.dataset.e]; });
+    const sync = (e) => {
+      $(`#sheet select[data-e="${e}"]`).value = draft[e];
+      $(`#sheet .hint[data-e="${e}"]`).innerHTML = tipFor(e);
     };
+    $('#sheet').onchange = (ev) => {
+      const sel = ev.target.closest('select');
+      if (sel) { draft[+sel.dataset.e] = sel.value; sync(+sel.dataset.e); }
+    };
+    $('#sheet').onclick = (ev) => {
+      const b = ev.target.closest('.dice');
+      if (!b) return;
+      ev.preventDefault();
+      const e = +b.dataset.e;
+      const taken = new Set(settings.rounds.map((names) => names[e]));
+      const free = LIBRARY[e].map((x) => x.name).filter((n) => !taken.has(n) && n !== draft[e]);
+      if (free.length) { draft[e] = shuffled(free)[0]; sync(e); }
+    };
+    $('#cancelEdit').onclick = closeModal;
     $('#saveEdit').onclick = () => {
-      document.querySelectorAll('#sheet input').forEach((inp) => {
-        const e = +inp.dataset.e;
-        settings.rounds[r][e] = inp.value.trim() || DEFAULT_ROUNDS[r][e];
-      });
+      settings.rounds[r] = draft;
       save(); renderHome(); closeModal();
     };
   }
@@ -340,6 +469,7 @@
   // Seconds into the current step (scaled by SPEED for timed steps).
   const elapsed = () => ((pausedAt !== null ? pausedAt : Date.now()) - stepStart) / 1000 * SPEED;
   const nameOf = (st) => settings.rounds[st.r][st.e];
+  const exOf = (st) => findEx(st.e, nameOf(st));
 
   function startWorkout() {
     audio(); // unlock audio on this tap
@@ -382,8 +512,12 @@
       if (st.type === 'ready') {
         if (c >= 1 && c <= 3 && c !== lastBeep) { lastBeep = c; sfx('count', c); }
       } else {
-        // Work: a faint chime at the halfway mark of longer sets, then a quiet clock for the last 3s.
-        if (st.dur >= 45 && lastBeep === null && rem <= st.dur / 2 && rem > 3) { lastBeep = 'half'; sfx('halfway'); }
+        // Work: halfway is a "switch sides" cue for one-sided exercises, otherwise a faint
+        // chime on longer sets. Then a quiet clock for the last 3s.
+        if (lastBeep === null && rem <= st.dur / 2 && rem > 3) {
+          if (exOf(st).sides) { lastBeep = 'half'; sfx('switchSides'); buzz(300); }
+          else if (st.dur >= 45) { lastBeep = 'half'; sfx('halfway'); }
+        }
         if (c >= 1 && c <= 3 && c !== lastBeep) { lastBeep = c; sfx('workTick'); }
       }
       if (rem > 0) break;
@@ -518,7 +652,7 @@
   // ---------- Render ----------
   function pills(r) {
     return `<div class="list">${settings.rounds[r].map((n, e) =>
-      `<span class="pill">${badge(e)}${esc(n)}</span>`).join('')}</div>`;
+      `<span class="pill">${badge(e)}${esc(n)}${wtIcon(findEx(e, n))}</span>`).join('')}</div>`;
   }
 
   function render() {
@@ -561,7 +695,19 @@
         phase.innerHTML = `${badge(st.e)}<span>${label}</span>`;
       }
       count.textContent = Math.ceil(rem);
-      ex.textContent = nameOf(st);
+      const x = exOf(st);
+      if (ex.dataset.name !== x.name) { ex.dataset.name = x.name; ex.innerHTML = `${esc(x.name)}${wtIcon(x)}`; }
+      // Tip line: form cue, plus weight / side reminders.
+      let tip = esc(x.tip || ''), hot = false;
+      if (st.type === 'ready' && x.weight === 'required') tip = `<b>Grab your weights</b> · ${tip}`;
+      if (x.sides) {
+        const into = st.dur - rem;
+        if (st.type === 'ready') tip = `<b>Both sides</b>, switch halfway · ${tip}`;
+        else if (into < st.dur / 2) tip = `<b>First side</b> · ${tip}`;
+        else if (into < st.dur / 2 + 3) { tip = '⇄ Switch sides!'; hot = true; }
+        else tip = `<b>Second side</b> · ${tip}`;
+      }
+      setTip(tip, hot);
       if (st.type === 'work') {
         const p = Math.min(1, (st.dur - rem) / st.dur);
         const [a0, a1] = ANG[active];
@@ -569,16 +715,28 @@
         if (prog) prog.setAttribute('d', arc(a0, a0 + (a1 - a0) * p));
       }
     } else if (st.type === 'break') {
+      setTip('', false);
+      ex.dataset.name = '';
       phase.dataset.label = '';
       phase.textContent = st.kind === 'set' ? 'Break' : `Round ${st.r} done!`;
       count.textContent = mmss((Date.now() - stepStart) / 1000);
       ex.textContent = st.kind === 'set' ? `Set ${st.s} done 🎉` : 'Good dog! 🐶';
     } else {
+      setTip('', false);
+      ex.dataset.name = '';
       phase.dataset.label = '';
       phase.textContent = 'All done!';
       count.textContent = '🏆';
       ex.textContent = mmss((finishedAt - startedAt) / 1000);
     }
+  }
+
+  function setTip(html, hot) {
+    const el = $('#tip');
+    if (el.dataset.html === html) return;
+    el.dataset.html = html;
+    el.innerHTML = html;
+    el.classList.toggle('hot', hot);
   }
 
   function renderUpNext(st) {
@@ -589,7 +747,7 @@
       for (let j = idx + (st.type === 'ready' ? 2 : 1); j < steps.length; j++) {
         if (steps[j].type !== 'ready') { next = steps[j]; break; }
       }
-      if (next.type === 'work') el.innerHTML = `<span class="label">Up next:</span> <b>${esc(nameOf(next))}</b>`;
+      if (next.type === 'work') el.innerHTML = `<span class="label">Up next:</span> <b>${esc(nameOf(next))}</b>${wtIcon(exOf(next))}`;
       else if (next.type === 'done') el.innerHTML = '<b>Last one, finish strong! 💪</b>';
       else el.innerHTML = `<span class="label">Up next:</span> <b>${next.kind === 'round' ? 'a longer break' : 'a short break'}</b>`;
     } else if (st.type === 'break' && st.kind === 'set') {

@@ -15,7 +15,16 @@ A big-button workout timer for Android, named after Sophie, who thinks we're pla
 The circle shows the current round as 9 slices: coral = abs, gold = arms/chest, teal = legs/cardio.
 Slices are sized by duration and grouped 3 + 3 + 3 by set. The dots at the top show which round you're on.
 
-Tap **Edit** on the home screen to rename any round's exercises. Tap the circle (or **Pause**) to pause.
+Tap **🎲 Shuffle workout** to pick a random workout: 9 different exercises, never repeated, favoring ones you
+didn't just do. Tap **Edit** on a round to change any exercise from a pulldown. Exercises already used in another
+round are greyed out. The 🎲 next to each pulldown picks a random unused one. Tap the circle (or **Pause**) to pause.
+
+The exercise list lives in `LIBRARY` at the top of `web/app.js`. Each entry can have:
+
+- `sides: true`: the interval is split in half with a "switch sides" chime, buzz and on-screen cue.
+- `weight: 'required'` or `'optional'`: shows a dumbbell icon (faded when optional). Required weights also show
+  "Grab your weights" during the get-ready countdown.
+- `tip`: a short form cue shown under the timer.
 
 ## Installing on your phone
 
@@ -26,7 +35,7 @@ Every push to `main` builds a new APK in GitHub Actions and publishes it as a re
 2. Open the downloaded file. Android will ask to allow installs from your browser: allow it, then tap **Install**.
 3. If Play Protect warns about an unknown app, choose **Install anyway**. It flags any app that isn't from the Play Store.
 
-To update, repeat the same steps. It installs over the old version and keeps your exercise names.
+To update, repeat the same steps. It installs over the old version and keeps your exercises.
 
 Turn up the phone's **media** volume to hear the chimes.
 
